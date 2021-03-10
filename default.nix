@@ -3,6 +3,8 @@
 , lib
 , lr
 , stdenv
+, makeWrapper
+, glibc
   # Optional override for the HLS binaries to support specific GHC versions.
 , ghcVersions ? [
     "8.6.4"
@@ -18,6 +20,7 @@
 let
   inherit (stdenv) mkDerivation isDarwin;
   hlsBins = [ "wrapper" ] ++ ghcVersions;
+  path = stdenv.lib.makeBinPath [ glibc ];
 in
 mkDerivation rec {
   pname = "haskell-language-server";
@@ -39,7 +42,7 @@ mkDerivation rec {
           stripRoot = false;
         };
 
-  nativeBuildInputs = [ installShellFiles ];
+  nativeBuildInputs = [ installShellFiles makeWrapper ];
 
   # NOTE: Copied from https://github.com/justinwoo/easy-dhall-nix/blob/master/build.nix
   installPhase = ''
@@ -50,6 +53,7 @@ mkDerivation rec {
           binPath="$out/bin/haskell-language-server-${hlsBin}"
           # Install HLS
           install -D -m555 -T "haskell-language-server-${hlsBin}" "$binPath"
+          wrapProgram "$binPath" --prefix PATH : "${path}"
           rm "haskell-language-server-${hlsBin}"
       
           # Install bash completions.
